@@ -1,0 +1,551 @@
+#include<iostream>
+#include<conio.h>
+#include<dos.h> 
+#include <windows.h>
+#include <time.h>
+
+#define SCREEN_HEIGHT 40
+#define WIN_WIDTH 80
+
+//function
+using namespace std; 
+ 
+HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
+COORD CursorPosition;
+
+void gotoxy(int x, int y){
+	CursorPosition.X = x;
+	CursorPosition.Y = y;
+	SetConsoleCursorPosition(console, CursorPosition);
+}
+
+void setcursor(bool visible, DWORD size) {
+	if(size == 0)
+		size = 20;	
+	
+	CONSOLE_CURSOR_INFO lpCursor;	
+	lpCursor.bVisible = visible;
+	lpCursor.dwSize = size;
+	SetConsoleCursorInfo(console,&lpCursor);
+}
+
+void setcolor(int fg,int bg)
+{
+ 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+ 	SetConsoleTextAttribute(hConsole, bg*16+fg);
+}
+
+//girl
+char girl[7][10] = {'','','','','','','','',' ',' ',
+    				' ','','','','','','','','',' ',
+    				' ','','',' ','',' ','',' ','',' ',
+    				' ','','',' ','฿',' ','฿',' ','',' ',
+    				' ','฿','฿','','','฿','','','฿',' ',
+   					' ','','','','','','','','','',
+    				' ',' ',' ',' ','',' ','',' ',' ',' '};
+    				
+int girlPos = WIN_WIDTH/2;
+int score = 0;
+
+void drawgirl(){
+	setcolor(4,0);
+	for(int i=0; i<7; i++){
+		for(int j=0; j<10; j++){
+			gotoxy(j+girlPos, i+34); cout<<girl[i][j];
+		}
+	}
+}
+
+void erasegirl(){
+	for(int i=0; i<7; i++){
+		for(int j=0; j<10; j++){
+			gotoxy(j+girlPos, i+34); cout<<" ";
+		}
+	}
+}
+
+//wolf
+int wolfY[3];
+int wolfX[3];
+int wolfFlag[3];
+
+void genwolf(int ind){
+	wolfX[ind] = 4 + rand()%(WIN_WIDTH-10); }
+	
+void drawwolf(int ind)
+{
+	setcolor(8,0);
+ 	if( wolfFlag[ind] == true ){
+ 	gotoxy(wolfX[ind], wolfY[ind]); cout<<"   ";
+    gotoxy(wolfX[ind], wolfY[ind]+1); cout<<"฿฿";
+    gotoxy(wolfX[ind], wolfY[ind]+2); cout<<" ฿฿ ";
+	}
+}
+
+void erasewolf(int ind)
+{
+ 	if( wolfFlag[ind] == true ){
+ 	gotoxy(wolfX[ind], wolfY[ind]); cout<<"       ";
+    gotoxy(wolfX[ind], wolfY[ind]+1); cout<<"       ";
+    gotoxy(wolfX[ind], wolfY[ind]+2); cout<<"       ";
+	}	
+}
+
+void resetwolf(int ind){
+	erasewolf(ind);
+	wolfY[ind] = 4;
+	genwolf(ind);
+}
+
+//apple
+int apples[20][4];
+int applesLife[20];
+int bIndex = 0;
+
+void genapple(){
+	apples[bIndex][0] = 34;
+	apples[bIndex][1] = girlPos+3;
+	bIndex++;
+	if( bIndex == 20)
+		bIndex = 0;
+}
+void moveapple(){
+	for(int i=0; i<20; i++){
+		if( apples[i][0] > 2 )
+			apples[i][0]--;
+		else
+			apples[i][0] = 0;
+	} 
+}
+void drawapples()
+{for(int i=0; i<20; i++){
+		if( apples[i][0] >= 1 ){
+			setcolor(2,0);
+ 			gotoxy(apples[i][1],apples[i][0]-4); cout<<" ";
+ 			setcolor(4,0);
+ 			gotoxy(apples[i][1],apples[i][0]-3); cout<<"";
+ 			gotoxy(apples[i][1],apples[i][0]-2); cout<<"฿฿฿";
+		}
+	}
+	
+}
+
+void eraseapples()
+{for(int i=0; i<20; i++){
+		if( apples[i][0] >= 1 ){
+			gotoxy(apples[i][1],apples[i][0]-4); cout<<"   ";
+ 			gotoxy(apples[i][1],apples[i][0]-3); cout<<"   ";
+ 			gotoxy(apples[i][1],apples[i][0]-2); cout<<"   ";
+ 			
+ 			gotoxy(apples[i][3],apples[i][2]-4); cout<<"   ";
+ 			gotoxy(apples[i][3],apples[i][2]-3); cout<<"   ";
+ 			gotoxy(apples[i][3],apples[i][2]-2); cout<<"   ";
+		}
+	}
+}
+
+void eraseapple(int i){ 
+	gotoxy(apples[i][1],apples[i][0]-4); cout<<"   ";
+ 	gotoxy(apples[i][1],apples[i][0]-3); cout<<"   ";
+ 	gotoxy(apples[i][1],apples[i][0]-2); cout<<"   ";
+ 	
+ 	gotoxy(apples[i][3],apples[i][2]-4); cout<<"   ";
+	gotoxy(apples[i][3],apples[i][2]-3); cout<<"   ";
+ 	gotoxy(apples[i][3],apples[i][2]-2); cout<<"   ";
+}
+
+int appleHit(){
+	for(int i=0; i<20; i++){
+		for(int j=0; j<4; j+=2){
+			if( apples[i][j] != 0 ){
+				if( apples[i][j] >= wolfY[0] && apples[i][j] <= wolfY[0]+6 ){
+					if( apples[i][j+1] >= wolfX[0] && apples[i][j+1] <= wolfX[0]+7 ){
+						eraseapple(i);
+						apples[i][j] = 0;
+						resetwolf(0);
+						return 1;
+					}
+				}
+				if( apples[i][j] >= wolfY[1] && apples[i][j] <= wolfY[1]+6 ){
+					if( apples[i][j+1] >= wolfX[1] && apples[i][j+1] <= wolfX[1]+7 ){
+						eraseapple(i);
+						resetwolf(1); 
+						apples[i][j] = 0;
+						return 1;
+					}
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+//gold
+int goldY[3];
+int goldX[3];
+int goldFlag[3];
+int getgold=0;
+
+void gengold(int s)
+{
+	goldX[s] = 3 + rand()%(WIN_WIDTH-10);
+	goldY[s] = 3 + rand()%(SCREEN_HEIGHT-10);
+}
+
+void drawgold(int ind)
+{
+ 	if( goldFlag[ind] == true ){
+ 	setcolor(2,0);
+ 	gotoxy(goldX[ind], goldY[ind]); cout<<" ";
+ 	setcolor(6,0);
+    gotoxy(goldX[ind], goldY[ind]+1); cout<<"";
+    gotoxy(goldX[ind], goldY[ind]+2); cout<<"฿฿฿";
+}
+}
+
+void erasegold(int ind)
+{
+ 	if( goldFlag[ind] == true ){
+ 	gotoxy(goldX[ind], goldY[ind]); cout<<"   ";
+    gotoxy(goldX[ind], goldY[ind]+1); cout<<"   ";
+    gotoxy(goldX[ind], goldY[ind]+2); cout<<"   ";
+}
+}
+
+void resetgold(int ind){
+	erasegold(ind);
+	goldY[ind] = 4;
+	gengold(ind);
+}
+
+int appleHitgold(){
+	for(int i=0; i<20; i++){
+		for(int j=0; j<4; j+=2){
+			if( apples[i][j] != 0 ){
+				if( apples[i][j] >= goldY[0] && apples[i][j] <= goldY[0]+10 ){
+					if( apples[i][j+1] >= goldX[0] && apples[i][j+1] <= goldX[0]+10 ){
+						eraseapple(i);
+						apples[i][j] = 0;
+						resetgold(0);
+						return 1;
+					}
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+//bigapple
+int bigapples[20][4];
+int bigapplesLife[20];
+int bigbIndex = 0;
+
+void genbigapple(){
+	bigapples[bigbIndex][0] = 34;
+	bigapples[bigbIndex][1] = girlPos+3;
+	bigbIndex++;
+	if( bigbIndex == 20)
+		bigbIndex = 0;
+}
+void movebigapple(){
+	for(int i=0; i<20; i++){
+		if( bigapples[i][0] > 2 )
+			bigapples[i][0]--;
+		else
+			bigapples[i][0] = 0;
+	} 
+}
+void drawbigapples()
+{for(int i=0; i<20; i++){
+		if( bigapples[i][0] >= 1 ){
+			setcolor(2,0);
+ 			gotoxy(bigapples[i][1],bigapples[i][0]-5); cout<<"   ฿";
+ 			setcolor(6,0);
+ 			gotoxy(bigapples[i][1],bigapples[i][0]-4); cout<<" ";
+ 			gotoxy(bigapples[i][1],bigapples[i][0]-3); cout<<" ";
+ 			gotoxy(bigapples[i][1],bigapples[i][0]-2); cout<<"฿฿ ";
+		}
+	}
+	
+}
+
+void erasebigapples()
+{for(int i=0; i<20; i++){
+		if( bigapples[i][0] >= 1 ){
+			gotoxy(bigapples[i][1],bigapples[i][0]-5); cout<<"       ";
+ 			gotoxy(bigapples[i][1],bigapples[i][0]-4); cout<<"       ";
+ 			gotoxy(bigapples[i][1],bigapples[i][0]-3); cout<<"       ";
+ 			gotoxy(bigapples[i][1],bigapples[i][0]-2); cout<<"       ";
+		}
+	}
+}
+
+void erasebigapple(int i){ 
+	gotoxy(bigapples[i][1],bigapples[i][0]-5); cout<<"       ";
+ 	gotoxy(bigapples[i][1],bigapples[i][0]-4); cout<<"       ";
+ 	gotoxy(bigapples[i][1],bigapples[i][0]-3); cout<<"       ";
+ 	gotoxy(bigapples[i][1],bigapples[i][0]-2); cout<<"       ";
+}
+
+int bigappleHit(){
+	for(int i=0; i<20; i++){
+		for(int j=0; j<4; j+=2){
+			if( bigapples[i][j] != 0 ){
+				if( bigapples[i][j] >= wolfY[0] && bigapples[i][j] <= wolfY[0]+15 ){
+					if( bigapples[i][j+1] >= wolfX[0] && bigapples[i][j+1] <= wolfX[0]+20 ){
+						erasebigapple(i);
+						bigapples[i][j] = 0;
+						resetwolf(0);
+						return 1;
+					}
+				}
+				if( bigapples[i][j] >= wolfY[1] && bigapples[i][j] <= wolfY[1]+15 ){
+					if( bigapples[i][j+1] >= wolfX[1] && bigapples[i][j+1] <= wolfX[1]+20 ){
+						erasebigapple(i);
+						resetwolf(1); 
+						bigapples[i][j] = 0;
+						return 1;
+					}
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+//flower
+int flowerY[3];
+int flowerX[3];
+int flowerFlag[3];
+
+void genflower(int s)
+{
+	flowerX[s] = 3 + rand()%(WIN_WIDTH-10);
+	flowerY[s] = 3 + rand()%(SCREEN_HEIGHT-10);
+}
+
+void drawflower(int ind)
+{
+ 	if( flowerFlag[ind] == true ){
+ 		setcolor(7,0);
+ 	gotoxy(flowerX[ind], flowerY[ind]); cout<<"    ";
+    gotoxy(flowerX[ind], flowerY[ind]+1); cout<<"  ";
+    gotoxy(flowerX[ind], flowerY[ind]+2); cout<<"    ";
+}
+}
+
+void eraseflower(int ind)
+{
+ 	if( flowerFlag[ind] == true ){
+ 	gotoxy(flowerX[ind], flowerY[ind]); cout<<"      ";
+    gotoxy(flowerX[ind], flowerY[ind]+1); cout<<"      ";
+    gotoxy(flowerX[ind], flowerY[ind]+2); cout<<"      ";
+}
+}
+
+void resetflower(int ind){
+	eraseflower(ind);
+	flowerY[ind] = 4;
+	genflower(ind);
+}
+
+int appleHitflower(){
+	for(int i=0; i<20; i++){
+		for(int j=0; j<4; j+=2){
+			if( apples[i][j] != 0 ){
+				if( apples[i][j] >= flowerY[0] && apples[i][j] <= flowerY[0]+10 ){
+					if( apples[i][j+1] >= flowerX[0] && apples[i][j+1] <= flowerX[0]+10 ){
+						eraseapple(i);
+						apples[i][j] = 0;
+						resetflower(0);
+						return 1;
+					}
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+//game
+void gameover(){
+	system("cls");
+	setcolor(7,0);
+	cout<<endl;
+	gotoxy(25, 15);
+	cout<<"\t    -------- Game Over -------"<<endl<<endl;
+	cout<<"\t\t\t\tPress any key to go back to menu.";
+	getch();
+}
+
+void updateScore(){
+	setcolor(7,0);
+	gotoxy(WIN_WIDTH + 7, 2);cout<<"Score: "<<score<<endl;
+}
+
+void Howtoplay(){
+	
+	system("cls");
+	cout<<"How to play";
+	cout<<"\n----------------";
+	cout<<"\n Press spacebar : shoot apples";
+	cout<<"\n Press A : move a girl to left";
+	cout<<"\n Press D : move a girl to right";
+	cout<<"\n Press X : Quit game";
+	cout<<"\n\n\nPress any key to go back to menu";
+	getch();
+}
+
+void play(){
+	girlPos = -1 + WIN_WIDTH/2;
+	score = 0;
+	wolfFlag[0] = 1;  
+	wolfFlag[1] = 1;	
+	wolfX[0] > wolfX[1] +8;	
+	wolfY[0] = wolfY[1] = 4;
+	
+	goldFlag[0] = 1;
+	goldY[0] = 4;
+	
+	flowerFlag[0] = 1;
+	flowerY[0] = 4;
+	
+	for(int i=0; i<20; i++){
+		apples[i][0] = apples[i][1] = 0; 
+	}
+	
+	for(int i=0; i<20; i++){
+		bigapples[i][0] = bigapples[i][1] = 0; 
+	}
+	
+	system("cls");
+	for(int i=0; i<WIN_WIDTH; i++){ 
+		gotoxy(i,SCREEN_HEIGHT-7); cout<<"_";
+	}
+	genwolf(0);
+	genwolf(1); 
+	//if (score >= 5 && score <6) {
+			//gengold(0);
+	//}
+	//if (score >= 15 && score <16) {
+			genflower(0);
+	//}
+	
+	updateScore();
+
+	gotoxy(10, 2);cout<<"Press any key to start";
+	getch();
+	gotoxy(10, 2);cout<<"                      ";
+	
+	while(1){
+		if(kbhit()){
+			char ch = getch();
+			if( ch=='a' || ch=='ฟ' ){
+				if( girlPos > 5 )
+					girlPos -= 7;
+			}
+			if( ch=='d' || ch=='ก' ){
+				if( girlPos < WIN_WIDTH-10 )
+					girlPos += 7;
+			}
+			if(ch==32 ){
+				if(getgold == 1){		
+				genbigapple();
+				}
+				else {genapple();}	
+			}
+			if(ch=='x'|| ch=='ป' ){
+				break;
+			}
+		}
+		
+		drawgirl();
+		drawwolf(0);
+		drawwolf(1);
+		drawapples();
+		drawbigapples();
+		
+		/*if (score >= 5 && score < 6) {
+			drawgold(0);
+			//Sleep(3000);
+			//resetgold(0);
+		}*/
+		if (score >= 15 && score < 16) {
+			drawflower(0);
+		}
+		if( appleHit() == 1 ){
+			score++;
+			updateScore(); 
+		}
+		if( bigappleHit() == 1 ){
+			score++;
+			updateScore(); 
+		}
+		if( appleHitgold() == 1 ){
+			getgold = 1;
+		}
+		if(score >= 15)
+			{getgold = 0;}
+		if( appleHitflower() == 1 ){
+			score += 10;
+			resetwolf(0);
+			resetwolf(1);	
+		}
+		
+		Sleep(200);
+		erasegirl();
+		erasewolf(0);
+		erasewolf(1);
+		eraseapples();
+		moveapple();
+		erasebigapples();
+		movebigapple();
+		
+		//movewolf
+		if( wolfFlag[0] == 1 )
+			wolfY[0] += 1;
+		if( wolfFlag[1] == 1 )
+			wolfY[1] += 1;
+		
+		//wolftobottom
+		if( wolfY[0] > SCREEN_HEIGHT- 10 ){ 
+			if(getgold == 0)
+			{gameover();
+			return;}
+			else {resetwolf(0);
+			}
+		}
+		if( wolfY[1] > SCREEN_HEIGHT- 10 ){ 
+			if(getgold == 0)
+			{gameover();
+			return;}
+			else {resetwolf(1);
+			}
+		}
+	}
+}
+
+int main()
+{
+	setcursor(0,0); 
+	srand( (unsigned)time(NULL)); 
+	 
+	do{
+		system("cls");
+		gotoxy(30,12); cout<<" ---------------------------------- "; 
+		gotoxy(30,13); cout<<" |     Little Red Riding Hood     | "; 
+		gotoxy(30,14); cout<<" ----------------------------------";
+		gotoxy(38,16); cout<<"Press 1 : Start Game";
+		gotoxy(38,17); cout<<"Press 2 : Instructions";	 
+		gotoxy(38,18); cout<<"Press 3 : Quit";
+		char op = getche();
+		
+		if( op=='1') play();
+		else if( op=='2') Howtoplay();
+		else if( op=='3') exit(0);
+		
+	}while(1);
+	
+	return 0;
+}
